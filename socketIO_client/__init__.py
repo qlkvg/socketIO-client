@@ -16,7 +16,7 @@ from .transports import (
 
 
 __all__ = 'SocketIO', 'SocketIONamespace'
-__version__ = '0.7.2'
+__version__ = '0.7.0'
 BaseNamespace = SocketIONamespace
 LoggingNamespace = LoggingSocketIONamespace
 
@@ -243,6 +243,7 @@ class EngineIO(LoggingMixin):
         self._transport.set_timeout(seconds=1)
         # Listen
         warning_screen = self._yield_warning_screen(seconds)
+        is_connected = False
         for elapsed_time in warning_screen:
             if self._should_stop_waiting(**kw):
                 break
@@ -254,7 +255,11 @@ class EngineIO(LoggingMixin):
                 except KeyboardInterrupt:
                     self._close()
                     raise
+                if not is_connected:
+                    is_connected = True
+                    self.emit("connect")
             except ConnectionError as e:
+                is_connected = False
                 self._opened = False
                 try:
                     warning = Exception('[connection error] %s' % e)
@@ -334,7 +339,7 @@ class SocketIO(EngineIO):
     - Pass query params, headers, cookies, proxies as keyword arguments.
 
     SocketIO(
-        '127.0.0.1', 8000,
+        'localhost', 8000,
         params={'q': 'qqq'},
         headers={'Authorization': 'Basic ' + b64encode('username:password')},
         cookies={'a': 'aaa'},
@@ -342,7 +347,7 @@ class SocketIO(EngineIO):
     """
 
     def __init__(
-            self, host='127.0.0.1', port=None, Namespace=SocketIONamespace,
+            self, host, port=None, Namespace=SocketIONamespace,
             wait_for_connection=True, transports=TRANSPORTS,
             resource='socket.io', hurry_interval_in_seconds=1, **kw):
         self._namespace_by_path = {}
